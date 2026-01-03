@@ -1,19 +1,40 @@
 import streamlit as st
 import pandas as pd
+import os
 
-# Page config
-st.set_page_config(page_title="Relative-Fit College Strategy Engine", page_icon="🎓", layout="wide")
+# --- PAGE CONFIG ---
+st.set_page_config(
+    page_title="Infoyoung India - College Strategy",
+    page_icon="🎓",
+    layout="wide"
+)
 
-# --- MASSIVE DATABASE (300+ SCHOOLS) ---
+# --- BRANDING HEADER ---
+# 2-Column Layout for Logo and Title
+c1, c2 = st.columns([1, 4])
+
+with c1:
+    if os.path.exists("logo.png"):
+        st.image("logo.png", width=150)
+    else:
+        st.warning("Logo not found (logo.png)")
+
+with c2:
+    st.markdown("""
+    <h1 style='margin-bottom: 0px;'>Infoyoung India</h1>
+    <h3 style='margin-top: 0px; font-weight: normal; color: #555;'>Premium College Strategy Engine</h3>
+    """, unsafe_allow_html=True)
+
+st.divider()
+
+# --- SIDEBAR BRANDING ---
+if os.path.exists("logo.png"):
+    st.logo("logo.png")
+
+st.sidebar.title("Strategy Inputs")
+
+# --- DATABASE (300+ SCHOOLS) ---
 # Format: (Name, Rate, SAT, Friendly, Difficulty_Score)
-# Diff 96-99: Ivies/Elite
-# Diff 90-95: Elite Private/Public
-# Diff 86-89: Top Tech/Private
-# Diff 80-85: Strong State
-# Diff 74-79: Major Hubs
-# Diff 68-73: Mid-Tier
-# Diff 55-67: Accessible
-
 RAW_COLLEGES = [
     # --- TIER 1: ELITE & IVY (96-99) ---
     ("Harvard University", 0.03, 1560, "Med", 99),
@@ -55,7 +76,7 @@ RAW_COLLEGES = [
 
     # --- TIER 2: TOP TECH / PRIVATE / PUBLIC (86-89) ---
     ("Boston College", 0.15, 1450, "Med", 89),
-    ("University of Rochester", 0.39, 1410, "High", 88), # High stats but higher rate
+    ("University of Rochester", 0.39, 1410, "High", 88),
     ("Case Western Reserve", 0.27, 1450, "High", 88),
     ("William & Mary", 0.33, 1420, "Med", 88),
     ("UC San Diego", 0.24, 1390, "High", 88),
@@ -99,7 +120,7 @@ RAW_COLLEGES = [
 
     # --- TIER 3: MAJOR HUBS / MID-TIER (74-79) ---
     ("Indiana University-Bloomington", 0.82, 1300, "High", 79),
-    ("Michigan State University", 0.83, 1240, "High", 78), # Easier SAT but big brand
+    ("Michigan State University", 0.83, 1240, "High", 78),
     ("University of Delaware", 0.70, 1260, "Med", 78),
     ("University of Colorado Boulder", 0.80, 1280, "Med", 78),
     ("Drexel University", 0.80, 1290, "High", 78),
@@ -111,13 +132,13 @@ RAW_COLLEGES = [
     ("University of Iowa", 0.86, 1230, "High", 76),
     ("University of Utah", 0.89, 1250, "Med", 76),
     ("University of Texas at Dallas", 0.85, 1280, "High", 76),
-    ("Stevens Institute of Technology", 0.46, 1380, "High", 76), # Hard entry
+    ("Stevens Institute of Technology", 0.46, 1380, "High", 76),
     ("Colorado School of Mines", 0.58, 1380, "Med", 76),
     ("Rochester Institute of Technology", 0.67, 1300, "High", 75),
     ("American University", 0.41, 1330, "Med", 75),
     ("University of Denver", 0.78, 1260, "Med", 75),
     ("San Diego State University", 0.39, 1230, "High", 75),
-    ("Florida State University", 0.25, 1290, "Low", 75), # Selective but Low Friendly
+    ("Florida State University", 0.25, 1290, "Low", 75),
     ("Arizona State University", 0.88, 1260, "High", 74),
     ("University of Arizona", 0.87, 1220, "High", 74),
     ("UC Riverside", 0.69, 1180, "High", 74),
@@ -131,7 +152,7 @@ RAW_COLLEGES = [
     ("University of Central Florida", 0.41, 1260, "Med", 72),
     ("University of Houston", 0.66, 1230, "High", 72),
     ("Illinois Institute of Technology", 0.61, 1290, "High", 71),
-    ("San Jose State University", 0.75, 1200, "High", 70), # Silicon Valley Hub
+    ("San Jose State University", 0.75, 1200, "High", 70),
     ("University of South Carolina", 0.64, 1270, "Low", 70),
     ("University of Oklahoma", 0.72, 1210, "Med", 70),
     ("University of Kansas", 0.88, 1170, "Med", 68),
@@ -163,200 +184,168 @@ RAW_COLLEGES = [
     ("Suffolk University", 0.87, 1120, "High", 58),
     ("University of Massachusetts-Boston", 0.79, 1100, "High", 58),
     ("University of Massachusetts-Lowell", 0.85, 1230, "High", 58),
-    ("Cal State Long Beach", 0.40, 1100, "High", 58), # Competitive for CSU
+    ("Cal State Long Beach", 0.40, 1100, "High", 58),
     ("Cal State Fullerton", 0.67, 1100, "High", 55),
     ("San Francisco State University", 0.93, 1050, "High", 55)
 ]
 
-# Create Dict
 COLLEGE_DB = []
 for n, r, s, f, d in RAW_COLLEGES:
     COLLEGE_DB.append({"Name": n, "Rate": r, "SAT": s, "Friendly": f, "Diff": d})
 
 # --- SCORING ENGINE ---
-
 def calculate_student_score(gpa, sat, ec_pts, major_penalty):
-    """
-    Calculates Student Power Score (0-100)
-    GPA: 60%, SAT: 30%, EC: 10%
-    """
-    # 1. Norm GPA (0-100) based on 4.0 scale
-    # 4.0 -> 100, 3.0 -> 75, 2.0 -> 50
+    # GPA (60%)
     norm_gpa_score = (gpa / 4.0) * 100
     norm_gpa_score = min(100, max(0, norm_gpa_score))
     
-    # 2. Norm SAT (0-100)
-    # 1600 -> 100, 1000 -> 62.5 (1000/1600 * 100), 0 -> 0 (or reweight)
+    # SAT (30%)
     norm_sat_score = 0
     if sat > 0:
         norm_sat_score = (sat / 1600) * 100
     else:
-        # If test optional, we might rely entirely on GPA/EC or boost GPA weight.
-        # Strict Relative Fit: If you hide SAT, you lose the points unless we reweight.
-        # Let's reweight GPA to 90% (from 60) and EC to 10%.
-        # This keeps the scale 0-100.
-        norm_gpa_score_reweighted = norm_gpa_score # Uses full 100 scale of GPA
-        # Weighted Final: 90% GPA + 10% EC
+        # Reweight for Test Optional: GPA becomes 90%, EC 10%
         final_raw = (norm_gpa_score * 0.9) + ec_pts
         return max(0, final_raw - major_penalty)
         
-    # Standard Weighting
-    # Score = (GPA_Score * 0.6) + (SAT_Score * 0.3) + EC_Pts
     final_raw = (norm_gpa_score * 0.6) + (norm_sat_score * 0.3) + ec_pts
-    
     return max(0, final_raw - major_penalty)
 
 def classify_college(student_score, college_diff, friendly):
     gap = student_score - college_diff
-    
-    # Classification
     category = "Target"
     
-    # Aspirational
     if gap < -5:
         category = "Aspirational"
-    # Safety
     elif gap > 8:
         category = "Safety"
         
-    # Special Rules
-    # If College is Ivy (Diff >= 96), it is Aspirational unless Gap > 2 (Student Score > 98)
+    # Ivy/Elite Exception
     if college_diff >= 96 and gap <= 2:
         category = "Aspirational"
         
-    # Unfriendly check: If gap is small positive but Low Friendly, might degrade to Target
-    # But Gap Analysis usually handles it if we penalized Score? 
-    # Current call: Gap handles "Fit", Friendly is separate check?
-    # Let's degrade Safety to Target if Unfriendly
     if category == "Safety" and friendly == "Low":
         category = "Target"
         
     return category, gap
 
-# --- MAIN APP ---
-def main():
-    st.sidebar.title("Relative-Fit Strategy Engine")
+# --- MAIN APP UI ---
+name = st.sidebar.text_input("Name", "Student")
+major_map = {
+    "Computer Science / Engineering": 8, 
+    "Business / Finance": 5,
+    "Biology / Pre-Med": 5,
+    "Humanities / Arts / Other": 0
+}
+major = st.sidebar.selectbox("Major", list(major_map.keys()))
+major_penalty = major_map[major]
+
+curr = st.sidebar.selectbox("Curriculum", ["CBSE / ICSE", "IB Diploma", "Cambridge A-Levels", "US High School", "Other"])
+
+norm_gpa = 3.0
+if curr == "CBSE / ICSE":
+    raw = st.sidebar.number_input("Percentage", 0.0, 100.0, 90.0)
+    if raw >= 95: norm_gpa = 4.0
+    elif raw >= 90: norm_gpa = 3.9
+    elif raw >= 85: norm_gpa = 3.7
+    elif raw >= 80: norm_gpa = 3.5
+    elif raw >= 75: norm_gpa = 3.3
+    else: norm_gpa = 3.0
+elif curr == "IB Diploma":
+    raw = st.sidebar.number_input("IB Score", 0.0, 45.0, 38.0)
+    if raw >= 42: norm_gpa = 4.0
+    elif raw >= 40: norm_gpa = 3.9
+    elif raw >= 37: norm_gpa = 3.7
+    elif raw >= 34: norm_gpa = 3.5
+    elif raw >= 30: norm_gpa = 3.2
+    else: norm_gpa = 3.0
+elif curr == "Cambridge A-Levels":
+    raw_grade = st.sidebar.selectbox("Grades", ["A*A*A* (Elite)", "A*AA / AAA", "AAB", "ABB", "BBB", "CCC"])
+    if "A*A*A*" in raw_grade: norm_gpa = 4.0
+    elif "A*AA" in raw_grade: norm_gpa = 3.9
+    elif "AAB" in raw_grade: norm_gpa = 3.5
+    elif "ABB" in raw_grade: norm_gpa = 3.3
+    elif "BBB" in raw_grade: norm_gpa = 3.0
+    else: norm_gpa = 2.7
+else:
+    norm_gpa = st.sidebar.number_input("GPA (4.0 Scale)", 0.0, 4.0, 3.8)
     
-    # INPUTS
-    name = st.sidebar.text_input("Name", "Student")
+sat = st.sidebar.number_input("SAT Score (0=Test Optional)", 0, 1600, 1400)
+ec_tier = st.sidebar.slider("Extracurriculars (1-10)", 1, 10, 7)
+
+# --- CALC & OUTPUT ---
+student_score = calculate_student_score(norm_gpa, sat, ec_tier, major_penalty)
+
+safeties, targets, aspirationals = [], [], []
+
+for c in COLLEGE_DB:
+    cat, gap = classify_college(student_score, c['Diff'], c['Friendly'])
+    row = {"College": c['Name'], "Rate": c['Rate'], "Diff": c['Diff'], "Gap": gap, "Friendly": c['Friendly']}
     
-    major_map = {
-        "Computer Science / Engineering": 8, # Penalty
-        "Business / Finance": 5,
-        "Biology / Pre-Med": 5,
-        "Humanities / Arts / Other": 0
-    }
-    major = st.sidebar.selectbox("Major", list(major_map.keys()))
-    major_penalty = major_map[major]
+    if cat == "Safety": safeties.append(row)
+    elif cat == "Target": targets.append(row)
+    else: aspirationals.append(row)
+
+# SORTING (Best 20)
+df_safe = pd.DataFrame(safeties)
+if not df_safe.empty: df_safe = df_safe.sort_values(by="Diff", ascending=False).head(20)
+
+df_targ = pd.DataFrame(targets)
+if not df_targ.empty: df_targ = df_targ.sort_values(by="Gap", ascending=True).head(20)
+
+df_asp = pd.DataFrame(aspirationals)
+if not df_asp.empty: df_asp = df_asp.sort_values(by="Gap", ascending=False).head(20)
+
+# Display Stats
+c1, c2, c3 = st.columns(3)
+c1.metric("Student Power Score", f"{student_score:.1f}")
+c2.metric("GPA (Normalized)", f"{norm_gpa}")
+c3.metric("SAT", sat if sat > 0 else "Test Optional")
+
+t1, t2, t3 = st.tabs(["🛡️ Safeties", "🎯 Targets", "🚀 Aspirationals"])
+
+def render(df):
+    if df.empty:
+        st.info("No colleges in this category.")
+        return
+    d = df.copy()
+    d['Rate'] = d['Rate'].apply(lambda x: f"{x*100:.1f}%")
+    d['Gap'] = d['Gap'].apply(lambda x: f"{x:+.1f}")
+    st.dataframe(d, use_container_width=True, hide_index=True)
+
+with t1: render(df_safe)
+with t2: render(df_targ)
+with t3: render(df_asp)
+
+# --- REPORT GENERATION ---
+st.markdown("### 📄 Official Report")
+if st.button("Generate Official Letter"):
+    top_safe = df_safe.iloc[0]['College'] if not df_safe.empty else "N/A"
+    top_targ = df_targ.iloc[0]['College'] if not df_targ.empty else "N/A"
+    top_asp = df_asp.iloc[0]['College'] if not df_asp.empty else "N/A"
     
-    curr = st.sidebar.selectbox("Curriculum", ["CBSE / ICSE", "IB Diploma", "Cambridge A-Levels", "US High School", "Other"])
+    report_text = f"""
+    INFOYOUNG INDIA - COLLEGE STRATEGY REPORT
+    -----------------------------------------
+    Student Name: {name}
+    Major Interest: {major}
+    Profile Score: {student_score:.1f}
     
-    # Get Normalized GPA (0-4.0)
-    norm_gpa = 3.0
-    if curr == "CBSE / ICSE":
-        raw = st.sidebar.number_input("Percentage", 0.0, 100.0, 90.0)
-        # Map to 4.0
-        if raw >= 95: norm_gpa = 4.0
-        elif raw >= 90: norm_gpa = 3.9
-        elif raw >= 85: norm_gpa = 3.7
-        elif raw >= 80: norm_gpa = 3.5
-        elif raw >= 75: norm_gpa = 3.3
-        else: norm_gpa = 3.0
-    elif curr == "IB Diploma":
-        raw = st.sidebar.number_input("IB Score", 0.0, 45.0, 38.0)
-        if raw >= 42: norm_gpa = 4.0
-        elif raw >= 40: norm_gpa = 3.9
-        elif raw >= 37: norm_gpa = 3.7
-        elif raw >= 34: norm_gpa = 3.5
-        elif raw >= 30: norm_gpa = 3.2
-        else: norm_gpa = 3.0
-    elif curr == "Cambridge A-Levels":
-        raw_grade = st.sidebar.selectbox("Grades", ["A*A*A* (Elite)", "A*AA / AAA", "AAB", "ABB", "BBB", "CCC"])
-        if "A*A*A*" in raw_grade: norm_gpa = 4.0
-        elif "A*AA" in raw_grade: norm_gpa = 3.9
-        elif "AAB" in raw_grade: norm_gpa = 3.5
-        elif "ABB" in raw_grade: norm_gpa = 3.3
-        elif "BBB" in raw_grade: norm_gpa = 3.0
-        else: norm_gpa = 2.7
-    else:
-        norm_gpa = st.sidebar.number_input("GPA (4.0 Scale)", 0.0, 4.0, 3.8)
-        
-    sat = st.sidebar.number_input("SAT Score (0=Test Optional)", 0, 1600, 1400)
-    ec_tier = st.sidebar.slider("Extracurriculars (1-10)", 1, 10, 7) # Adds 0-10 pts? prompt says "Soft Factors (10%): ECs add 0-10 pts"
-    # So Tier 10 = 10 pts. Tier 1 = 1 pt.
+    Based on our 'Relative-Fit Analysis', here are your recommended schools:
     
-    # CALC
-    student_score = calculate_student_score(norm_gpa, sat, ec_tier, major_penalty)
+    1. TOP ASPIRATIONAL (Reach): {top_asp}
+       - This school is a Reach, but your profile shows potential.
+       
+    2. TOP TARGET (Best Fit): {top_targ}
+       - Your profile is well-aligned with this institution.
+       
+    3. TOP SAFETY (Backup): {top_safe}
+       - You are strongly positioned for admission here.
+       
+    Strategic Advice:
+    Focus your essays on {top_targ} while keeping {top_safe} as a reliable backup. 
+    For {top_asp}, demonstrate strong specific interest ("Why Us") to bridge the gap.
     
-    safeties, targets, aspirationals = [], [], []
-    
-    for c in COLLEGE_DB:
-        cat, gap = classify_college(student_score, c['Diff'], c['Friendly'])
-        
-        row = {
-            "College": c['Name'],
-            "Rate": c['Rate'],
-            "Difficulty": c['Diff'],
-            "Gap": gap,
-            "Friendly": c['Friendly'],
-            "Fit": cat
-        }
-        
-        if cat == "Safety": safeties.append(row)
-        elif cat == "Target": targets.append(row)
-        else: aspirationals.append(row)
-        
-    # SORTING (20-20-20)
-    # Safeties: Diff Desc (Hardest first)
-    df_safe = pd.DataFrame(safeties)
-    if not df_safe.empty: df_safe = df_safe.sort_values(by="Difficulty", ascending=False).head(20)
-    
-    # Targets: Gap Asc (Closest to 0 first? Or closest to +8? Prompt: "Gap Ascending (Show closest matches first)")
-    # Gap -5 to +8. Ascending means -5, -4...0... +8. 
-    # Gap 0 is perfect match. Gap -5 is harder match. Gap +8 is easier match.
-    # Closest match implies Gap ~ 0.
-    # "Gap Ascending" sorts -5 first (Harder Targets). 
-    df_targ = pd.DataFrame(targets)
-    if not df_targ.empty: 
-        # Better: Sort by abs(Gap)? No prompt said Gap Ascending.
-        df_targ = df_targ.sort_values(by="Gap", ascending=True).head(20)
-        
-    # Aspirational: Gap Desc (Realistic Reaches first)
-    # Gap < -5. e.g. -6, -10, -20.
-    # Descending: -6, -10, -20. (Closest to Target line).
-    df_asp = pd.DataFrame(aspirationals)
-    if not df_asp.empty: df_asp = df_asp.sort_values(by="Gap", ascending=False).head(20)
-    
-    # UI
-    st.title(f"Relative-Fit Strategy for {name}")
-    st.markdown(f"**Major:** {major}")
-    
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Student Power Score", f"{student_score:.1f}/100")
-    c2.metric("Normalized GPA", f"{norm_gpa}")
-    c3.metric("SAT", sat if sat > 0 else "Test Optional")
-    
-    t1, t2, t3 = st.tabs(["🛡️ Safeties", "🎯 Targets", "🚀 Aspirationals"])
-    
-    def render(df, title):
-        if df.empty:
-            st.info("No colleges in this category.")
-            return
-        
-        d = df.copy()
-        d['Rate'] = d['Rate'].apply(lambda x: f"{x*100:.1f}%")
-        d['Gap'] = d['Gap'].apply(lambda x: f"{x:+.1f}")
-        
-        st.dataframe(d[['College', 'Rate', 'Difficulty', 'Gap', 'Friendly']], use_container_width=True, hide_index=True)
-        
-    with t1: render(df_safe, "High Quality Safeties")
-    with t2: render(df_targ, "Strategic Targets")
-    with t3: render(df_asp, "Realistic Reaches")
-    
-    # Download
-    final = pd.concat([df_safe, df_targ, df_asp])
-    if not final.empty:
-        st.download_button("Download Report", final.to_csv(index=False).encode('utf-8'), "relative_fit_strategy.csv", "text/csv")
-        
-if __name__ == "__main__":
-    main()
+    Generated by Infoyoung India Engine.
+    """
+    st.code(report_text)
