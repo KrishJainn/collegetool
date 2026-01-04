@@ -1,0 +1,23 @@
+name: Prevent Hibernation
+
+on:
+  schedule:
+    # Runs at minute 0 past every 11th hour (e.g., 11:00 AM, 10:00 PM...)
+    - cron: '0 */11 * * *'
+  workflow_dispatch: # Allows manual run
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Update Activity
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git commit --allow-empty -m "Auto-commit to prevent hibernation"
+          git push
