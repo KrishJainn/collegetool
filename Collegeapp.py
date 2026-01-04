@@ -415,29 +415,37 @@ elif st.session_state['step'] == 3:
             for r in reaches: r['Category'] = 'Reach'
             all_colleges = safeties + targets + reaches
             
-            with pd.ExcelWriter(o, engine='openpyxl') as w:
-                # Student info sheet
-                student_info = pd.DataFrame([{
-                    'Student Name': s['name'],
-                    'Curriculum': s['curriculum'],
-                    'GPA': f"{s['gpa']:.2f}",
-                    'SAT': s['sat'],
-                    'Major': s['major'],
-                    'EC Score': f"{s['ec']}/10",
-                    'Overall Score': f"{score:.0f}/100"
-                }])
-                student_info.to_excel(w, sheet_name='Student Profile', index=False)
-                
-                # Combined sheet with all 45
-                if all_colleges:
-                    cols = ['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
-                    df_all = pd.DataFrame(all_colleges)[cols]
-                    df_all.to_excel(w, sheet_name='All Recommendations', index=False)
-                # Individual sheets
-                cols_single = ['University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
-                if safeties: pd.DataFrame(safeties)[cols_single].to_excel(w, sheet_name='Safety', index=False)
-                if targets: pd.DataFrame(targets)[cols_single].to_excel(w, sheet_name='Target', index=False)
-                if reaches: pd.DataFrame(reaches)[cols_single].to_excel(w, sheet_name='Reach', index=False)
+            try:
+                with pd.ExcelWriter(o, engine='xlsxwriter') as w:
+                    # Student info sheet
+                    student_info = pd.DataFrame([{
+                        'Student Name': s['name'],
+                        'Curriculum': s['curriculum'],
+                        'GPA': f"{s['gpa']:.2f}",
+                        'SAT': s['sat'],
+                        'Major': s['major'],
+                        'EC Score': f"{s['ec']}/10",
+                        'Overall Score': f"{score:.0f}/100"
+                    }])
+                    student_info.to_excel(w, sheet_name='Student Profile', index=False)
+                    
+                    # Combined sheet with all 45
+                    if all_colleges:
+                        cols = ['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
+                        df_all = pd.DataFrame(all_colleges)[cols]
+                        df_all.to_excel(w, sheet_name='All Recommendations', index=False)
+                    # Individual sheets
+                    cols_single = ['University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
+                    if safeties: pd.DataFrame(safeties)[cols_single].to_excel(w, sheet_name='Safety', index=False)
+                    if targets: pd.DataFrame(targets)[cols_single].to_excel(w, sheet_name='Target', index=False)
+                    if reaches: pd.DataFrame(reaches)[cols_single].to_excel(w, sheet_name='Reach', index=False)
+            except:
+                # Fallback to openpyxl
+                with pd.ExcelWriter(o, engine='openpyxl') as w:
+                    student_info = pd.DataFrame([{'Student Name': s['name'], 'Curriculum': s['curriculum'], 'GPA': f"{s['gpa']:.2f}", 'SAT': s['sat'], 'Major': s['major'], 'EC Score': f"{s['ec']}/10", 'Overall Score': f"{score:.0f}/100"}])
+                    student_info.to_excel(w, sheet_name='Student Profile', index=False)
+                    if all_colleges:
+                        pd.DataFrame(all_colleges)[['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']].to_excel(w, sheet_name='All Recommendations', index=False)
             return o.getvalue()
         
         st.download_button("Download Excel Report", xl(), f"{s['name']}_Strategy.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
