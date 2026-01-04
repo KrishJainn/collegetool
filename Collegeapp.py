@@ -4,428 +4,462 @@ import os
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Infoyoung India - College Strategy",
+    page_title="Infoyoung India | College Strategy",
     page_icon="🎓",
     layout="wide"
 )
 
-# --- BRANDING HEADER ---
-c1, c2 = st.columns([1, 4])
-
-with c1:
-    if os.path.exists("logo.png"):
-        st.image("logo.png", width=150)
-    else:
-        st.warning("Logo not found (logo.png)")
-
-with c2:
-    st.markdown("""
-    <h1 style='margin-bottom: 0px;'>Infoyoung India</h1>
-    <h3 style='margin-top: 0px; font-weight: normal; color: #555;'>Premium College Strategy Engine</h3>
-    """, unsafe_allow_html=True)
-
-st.divider()
-
-# --- SIDEBAR BRANDING ---
-if os.path.exists("logo.png"):
-    st.logo("logo.png")
-
-st.sidebar.title("Strategy Inputs")
-
-# --- DATABASE (300+ SCHOOLS) ---
-# Format: (Name, Rate, SAT, Friendly, Difficulty_Score, Specialties)
-# Specialties Codes: 'CS' (CompSci/Eng), 'Biz' (Business), 'Bio' (Bio/Pre-Med)
-RAW_COLLEGES = [
-    # --- TIER 1: ELITE & IVY (96-99) ---
-    ("Harvard University", 0.03, 1560, "Med", 99, []),
-    ("Stanford University", 0.04, 1550, "High", 99, ['CS', 'Eng']),
-    ("MIT", 0.04, 1550, "High", 99, ['CS', 'Eng']),
-    ("Princeton University", 0.04, 1540, "Med", 98, []),
-    ("Yale University", 0.05, 1540, "Med", 98, []),
-    ("California Institute of Technology", 0.03, 1560, "High", 98, ['CS', 'Eng']),
-    ("Columbia University", 0.04, 1530, "High", 97, []),
-    ("University of Pennsylvania", 0.06, 1520, "High", 97, ['Biz']), # Wharton
-    ("University of Chicago", 0.05, 1540, "Med", 97, []),
-    ("Duke University", 0.06, 1520, "Med", 96, ['Bio']),
-    ("Johns Hopkins University", 0.07, 1530, "Med", 96, ['Bio']),
-    ("Northwestern University", 0.07, 1510, "Med", 96, []),
-    ("Dartmouth College", 0.06, 1500, "Med", 96, []),
-    ("Brown University", 0.05, 1500, "Med", 96, []),
-    ("Vanderbilt University", 0.07, 1510, "Med", 96, []),
-    ("Cornell University", 0.07, 1490, "High", 96, ['CS', 'Eng']), # Strong Eng
-    ("Rice University", 0.09, 1530, "Med", 96, []),
-
-    # --- TIER 1.5: ELITE PUBLIC & PRIVATE (90-95) ---
-    ("WashU St. Louis", 0.12, 1500, "Med", 94, ['Bio']),
-    ("Carnegie Mellon University", 0.11, 1540, "High", 94, ['CS', 'Eng', 'Biz']), # Tepper + SCS
-    ("UCLA", 0.09, 1450, "High", 94, []),
-    ("UC Berkeley", 0.11, 1460, "High", 94, ['CS', 'Eng', 'Biz']), # Haas + EECS
-    ("Georgetown University", 0.12, 1460, "Med", 93, ['Biz']), # McDonough
-    ("Emory University", 0.11, 1470, "Med", 93, ['Bio']),
-    ("University of Notre Dame", 0.12, 1470, "Low", 93, ['Biz']), # Mendoza
-    ("University of Southern California", 0.12, 1480, "High", 92, ['Biz']), # Marshall
-    ("New York University", 0.08, 1490, "High", 92, ['Biz']), # Stern
-    ("University of Michigan-Ann Arbor", 0.18, 1470, "High", 92, ['Biz', 'CS', 'Eng']), # Ross + Eng
-    ("Tufts University", 0.10, 1480, "Med", 92, []),
-    ("Georgia Institute of Technology", 0.16, 1450, "High", 91, ['CS', 'Eng']),
-    ("University of Virginia", 0.19, 1460, "Med", 91, ['Biz']), # McIntyre
-    ("UNC Chapel Hill", 0.17, 1440, "Low", 91, ['Biz', 'Bio']), # Kenan-Flagler + Bio
-    ("Boston University", 0.14, 1440, "High", 90, ['Bio']),
-    ("Northeastern University", 0.07, 1470, "High", 90, ['CS']), # Strong Co-op CS
-    ("Tulane University", 0.11, 1440, "Med", 90, []),
-
-    # --- TIER 2: TOP TECH / PRIVATE / PUBLIC (86-89) ---
-    ("Boston College", 0.15, 1450, "Med", 89, ['Biz']), # Carroll
-    ("University of Rochester", 0.39, 1410, "High", 88, []),
-    ("Case Western Reserve", 0.27, 1450, "High", 88, ['Bio', 'Eng']),
-    ("William & Mary", 0.33, 1420, "Med", 88, []),
-    ("UC San Diego", 0.24, 1390, "High", 88, ['Bio', 'CS', 'Eng']),
-    ("UC Santa Barbara", 0.26, 1380, "High", 87, []),
-    ("UC Irvine", 0.21, 1380, "High", 87, ['CS']),
-    ("University of Florida", 0.23, 1400, "Low", 87, []),
-    ("Wake Forest University", 0.20, 1390, "Med", 87, ['Biz']),
-    ("Villanova University", 0.23, 1390, "Med", 87, ['Biz']),
-    ("University of Texas at Austin", 0.31, 1390, "Low", 86, ['CS', 'Eng', 'Biz']), # McCombs + Cockrell + CS
-    ("University of Illinois Urbana-Champaign", 0.45, 1420, "High", 86, ['CS', 'Eng']),
-    ("University of Wisconsin-Madison", 0.49, 1410, "High", 86, ['Eng']),
-    ("University of Maryland-College Park", 0.44, 1410, "High", 86, ['CS', 'Eng']),
-    ("University of Washington-Seattle", 0.46, 1370, "High", 86, ['CS', 'Eng', 'Bio']),
-    ("Lehigh University", 0.37, 1380, "Med", 86, ['Eng', 'Biz']),
-
-    # --- TIER 2.5: STRONG STATE & STEM (80-85) ---
-    ("Purdue University", 0.50, 1340, "High", 85, ['CS', 'Eng']),
-    ("Ohio State University", 0.53, 1370, "High", 84, ['Biz']),
-    ("University of Georgia", 0.43, 1340, "Low", 84, []),
-    ("Santa Clara University", 0.52, 1390, "High", 84, ['Biz', 'Eng']),
-    ("Rensselaer Polytechnic Institute", 0.65, 1380, "High", 84, ['Eng']),
-    ("Virginia Tech", 0.57, 1340, "High", 83, ['CS', 'Eng']),
-    ("Texas A&M University", 0.63, 1290, "Low", 83, ['Eng']),
-    ("University of Connecticut", 0.55, 1320, "Med", 83, []),
-    ("University of Pittsburgh", 0.49, 1340, "Med", 83, ['Bio']),
-    ("Worcester Polytechnic Institute", 0.58, 1360, "High", 83, ['Eng']),
-    ("North Carolina State University", 0.47, 1360, "High", 83, ['Eng']),
-    ("UC Davis", 0.37, 1330, "High", 83, ['Bio']),
-    ("Rutgers University", 0.66, 1350, "High", 82, []),
-    ("Penn State University", 0.55, 1320, "High", 82, ['Biz', 'Eng']),
-    ("University of Massachusetts-Amherst", 0.64, 1330, "High", 82, ['CS']),
-    ("Fordham University", 0.54, 1340, "Med", 81, ['Biz']),
-    ("George Washington University", 0.49, 1370, "Med", 81, ['Biz']), # Intl Biz
-    ("Syracuse University", 0.52, 1310, "High", 81, []),
-    ("University of Miami", 0.19, 1380, "Med", 81, []),
-    ("Southern Methodist University", 0.52, 1370, "Med", 81, ['Biz']),
-    ("Yeshiva University", 0.63, 1370, "Med", 80, []),
-    ("University of Minnesota-Twin Cities", 0.73, 1370, "High", 80, ['Eng', 'Biz']),
-    ("Stony Brook University", 0.49, 1370, "High", 80, ['CS']),
-    ("Binghamton University", 0.42, 1370, "Med", 80, []),
+# --- PROFESSIONAL CSS (UX Enhanced) ---
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Neuton:wght@400;700;800&display=swap');
     
-    # --- TIER 3: MAJOR HUBS / MID-TIER (74-79) ---
-    ("Indiana University-Bloomington", 0.82, 1300, "High", 79, ['Biz']), # Kelley
-    ("Michigan State University", 0.83, 1240, "High", 78, ['Biz']),
-    ("University of Delaware", 0.70, 1260, "Med", 78, ['ClE']), # Chem Eng strong
-    ("University of Colorado Boulder", 0.80, 1280, "Med", 78, ['Eng']),
-    ("Drexel University", 0.80, 1290, "High", 78, ['Cs', 'Eng']), # Co-op
-    ("University at Buffalo", 0.68, 1280, "High", 77, ['Eng']),
-    ("Clemson University", 0.49, 1310, "Low", 77, []),
-    ("Auburn University", 0.44, 1250, "Low", 77, ['Eng']),
-    ("Baylor University", 0.46, 1270, "Med", 77, []),
-    ("Marquette University", 0.86, 1250, "Med", 76, []),
-    ("University of Iowa", 0.86, 1230, "High", 76, ['Bio']), # Strong med/writing
-    ("University of Utah", 0.89, 1250, "Med", 76, ['Eng']),
-    ("University of Texas at Dallas", 0.85, 1280, "High", 76, ['CS', 'Biz']),
-    ("Stevens Institute of Technology", 0.46, 1380, "High", 76, ['Eng']),
-    ("Colorado School of Mines", 0.58, 1380, "Med", 76, ['Eng']),
-    ("Rochester Institute of Technology", 0.67, 1300, "High", 75, ['CS', 'Eng']),
-    ("American University", 0.41, 1330, "Med", 75, ['Biz']), # Intl rel + Biz
-    ("University of Denver", 0.78, 1260, "Med", 75, ['Biz']),
-    ("San Diego State University", 0.39, 1230, "High", 75, ['Biz']),
-    ("Florida State University", 0.25, 1290, "Low", 75, []),
-    ("Arizona State University", 0.88, 1260, "High", 74, ['Biz', 'Eng']),
-    ("University of Arizona", 0.87, 1220, "High", 74, ['Biz']),
-    ("UC Riverside", 0.69, 1180, "High", 74, []),
-    ("UC Santa Cruz", 0.47, 1260, "High", 74, ['CS']),
-    ("University of Tennessee", 0.68, 1250, "Low", 74, []),
-    ("Babson College", 0.22, 1370, "Med", 88, ['Biz']), # Added Manually
-    ("Bentley University", 0.58, 1320, "Med", 80, ['Biz']), # Added Manually
-    ("Cal Poly SLO", 0.28, 1350, "High", 85, ['CS', 'Eng']), # Added/Ensured
-    ("University of Waterloo", 0.53, 1400, "High", 88, ['CS', 'Eng']), # Added
-
-    # --- TIER 4: ACCESSIBLE / STRONG ROI (60-73) ---
-    ("Temple University", 0.79, 1240, "High", 73, ['Biz']),
-    ("Oregon State University", 0.83, 1200, "High", 72, ['Eng']),
-    ("University of South Florida", 0.44, 1260, "Med", 72, []),
-    ("University of Central Florida", 0.41, 1260, "Med", 72, ['Eng']),
-    ("University of Houston", 0.66, 1230, "High", 72, ['Biz']),
-    ("Illinois Institute of Technology", 0.61, 1290, "High", 71, ['Eng', 'CS']),
-    ("San Jose State University", 0.75, 1200, "High", 70, ['CS', 'Eng']),
-    ("University of South Carolina", 0.64, 1270, "Low", 70, ['Biz']),
-    ("University of Oklahoma", 0.72, 1210, "Med", 70, []),
-    ("University of Kansas", 0.88, 1170, "Med", 68, []),
-    ("University of Kentucky", 0.94, 1190, "Med", 68, []),
-    ("Louisiana State University", 0.75, 1180, "Med", 68, []),
-    ("Washington State University", 0.83, 1120, "Med", 68, []),
-    ("University of Nebraska-Lincoln", 0.79, 1180, "Med", 68, []),
-    ("Iowa State University", 0.90, 1150, "High", 67, ['Eng']),
-    ("University of Missouri", 0.79, 1200, "Med", 67, []),
-    ("University of Arkansas", 0.79, 1180, "Med", 67, []),
-    ("University of Alabama", 0.80, 1210, "Low", 67, []),
-    ("George Mason University", 0.90, 1210, "High", 66, []),
-    ("DePaul University", 0.70, 1180, "Med", 66, []),
-    ("Seton Hall University", 0.75, 1230, "Med", 66, []),
-    ("Hofstra University", 0.69, 1240, "Med", 66, []),
-    ("University of Cincinnati", 0.86, 1230, "High", 66, ['Co-op']),
-    ("University of Illinois Chicago", 0.79, 1130, "High", 65, []),
-    ("University of North Texas", 0.79, 1130, "High", 64, []),
-    ("Texas Tech University", 0.67, 1180, "Med", 64, []),
-    ("Oklahoma State University", 0.70, 1140, "Med", 64, []),
-    ("Kansas State University", 0.95, 1160, "Med", 63, []),
-    ("West Virginia University", 0.90, 1110, "Med", 62, []),
-    ("Northern Arizona University", 0.80, 1100, "Med", 60, []),
-    ("Florida International University", 0.64, 1190, "High", 60, []),
-    ("Georgia State University", 0.61, 1100, "Med", 60, []),
-    ("University of New Mexico", 0.96, 1080, "Med", 58, []),
-    ("University of Nevada-Las Vegas", 0.85, 1090, "Med", 58, ['Hosp']),
-    ("Pace University", 0.83, 1140, "High", 58, []),
-    ("Suffolk University", 0.87, 1120, "High", 58, []),
-    ("University of Massachusetts-Boston", 0.79, 1100, "High", 58, []),
-    ("University of Massachusetts-Lowell", 0.85, 1230, "High", 58, []),
-    ("Cal State Long Beach", 0.40, 1100, "High", 58, []),
-    ("Cal State Fullerton", 0.67, 1100, "High", 55, []),
-    ("San Francisco State University", 0.93, 1050, "High", 55, [])
-]
-
-COLLEGE_DB = []
-for n, r, s, f, d, specs in RAW_COLLEGES:
-    COLLEGE_DB.append({"Name": n, "Rate": r, "SAT": s, "Friendly": f, "Diff": d, "Specialties": specs})
-
-# --- SCORING ENGINE ---
-def calculate_student_score(gpa, sat, ec_pts, major_penalty):
-    # GPA (60%)
-    norm_gpa_score = (gpa / 4.0) * 100
-    norm_gpa_score = min(100, max(0, norm_gpa_score))
-    
-    # SAT (30%)
-    norm_sat_score = 0
-    if sat > 0:
-        norm_sat_score = (sat / 1600) * 100
-    else:
-        # Reweight for Test Optional: GPA becomes 90%, EC 10%
-        # Major penalty still applies to final
-        final_raw = (norm_gpa_score * 0.9) + ec_pts
-        return max(0, final_raw - major_penalty)
-        
-    final_raw = (norm_gpa_score * 0.6) + (norm_sat_score * 0.3) + ec_pts
-    return max(0, final_raw - major_penalty)
-
-def calculate_admissibility(student_score, college_data, major_type, risk_tolerance):
-    """
-    Calculates difficulty with program penalties and determines fit.
-    Returns: (Category, Gap, FitBadge)
-    """
-    base_diff = college_data['Diff']
-    specialties = college_data['Specialties']
-    fit_badge = ""
-
-    # 1. Program Penalty (Reality Check)
-    eff_diff = base_diff
-    
-    if major_type == "CS" and ("CS" in specialties or "Eng" in specialties):
-        eff_diff += 10 # CS at top places is Brutal
-    elif major_type == "Biz" and "Biz" in specialties:
-        eff_diff += 5  # Stern/Wharton/Kelley penalty
-    elif major_type == "Bio" and "Bio" in specialties:
-        eff_diff += 3  # Pre-med competitive boost (mild)
-
-    # 2. Fit Boost (Visual Reward)
-    # Check strict string match for badge
-    if major_type in specialties:
-         fit_badge = " 🏆 Top Program"
-    # Overlap for CS/Eng
-    elif major_type == "CS" and "Eng" in specialties:
-         fit_badge = " 🏆 Top Program"
-
-    # 3. Gap Analysis
-    gap = student_score - eff_diff
-
-    # 4. Risk Tolerance Thresholds
-    # Tolerances define what counts as "Safety" vs "Target"
-    # Higher risk tolerance = Willing to accept smaller gaps for safeties (riskier)
-    # Actually, Risk Tolerance usually means:
-    # Aggressive: I'll accept a school as a Target even if it's hard (Gap > -5). Safety starts at Gap > 5. (Wider Target)
-    # Conservative: I need a huge gap for it to be a safety (Gap > 10). Target range is tight.
-    
-    thresh_safety = 8 # Default
-    thresh_reach = -5 # Default
-    
-    if risk_tolerance == "Aggressive":
-        thresh_safety = 5
-        thresh_reach = -8
-    elif risk_tolerance == "Conservative":
-        thresh_safety = 12
-        thresh_reach = -2
-
-    category = "Target"
-    if gap < thresh_reach:
-        category = "Aspirational"
-    elif gap > thresh_safety:
-        category = "Safety"
-        
-    # Ivy/Elite Exception (Always hard if base diff is high, unless massive gap)
-    if base_diff >= 96 and gap <= 4:
-         category = "Aspirational"
-    
-    # Friendly Factor
-    if category == "Safety" and college_data['Friendly'] == "Low":
-        category = "Target"
-        
-    return category, gap, fit_badge
-
-# --- MAIN APP UI ---
-name = st.sidebar.text_input("Name", "Student")
-major_display_map = {
-    "Computer Science / Engineering": ("CS", 8), 
-    "Business / Finance": ("Biz", 5),
-    "Biology / Pre-Med": ("Bio", 5),
-    "Humanities / Arts / Other": ("Other", 0)
-}
-major_selection = st.sidebar.selectbox("Major", list(major_display_map.keys()))
-major_code, major_penalty = major_display_map[major_selection]
-
-curr = st.sidebar.selectbox("Curriculum", ["CBSE / ICSE", "IB Diploma", "Cambridge A-Levels", "US High School", "Other"])
-
-norm_gpa = 3.0
-if curr == "CBSE / ICSE":
-    raw = st.sidebar.number_input("Percentage", 0.0, 100.0, 90.0)
-    if raw >= 95: norm_gpa = 4.0
-    elif raw >= 90: norm_gpa = 3.9
-    elif raw >= 85: norm_gpa = 3.7
-    elif raw >= 80: norm_gpa = 3.5
-    elif raw >= 75: norm_gpa = 3.3
-    else: norm_gpa = 3.0
-elif curr == "IB Diploma":
-    raw = st.sidebar.number_input("IB Score", 0.0, 45.0, 38.0)
-    if raw >= 42: norm_gpa = 4.0
-    elif raw >= 40: norm_gpa = 3.9
-    elif raw >= 37: norm_gpa = 3.7
-    elif raw >= 34: norm_gpa = 3.5
-    elif raw >= 30: norm_gpa = 3.2
-    else: norm_gpa = 3.0
-elif curr == "Cambridge A-Levels":
-    raw_grade = st.sidebar.selectbox("Grades", ["A*A*A* (Elite)", "A*AA / AAA", "AAB", "ABB", "BBB", "CCC"])
-    if "A*A*A*" in raw_grade: norm_gpa = 4.0
-    elif "A*AA" in raw_grade: norm_gpa = 3.9
-    elif "AAB" in raw_grade: norm_gpa = 3.5
-    elif "ABB" in raw_grade: norm_gpa = 3.3
-    elif "BBB" in raw_grade: norm_gpa = 3.0
-    else: norm_gpa = 2.7
-else:
-    norm_gpa = st.sidebar.number_input("GPA (4.0 Scale)", 0.0, 4.0, 3.8)
-    
-sat = st.sidebar.number_input("SAT Score (0=Test Optional)", 0, 1600, 1400)
-ec_tier = st.sidebar.slider("Extracurriculars (1-10)", 1, 10, 7)
-risk_tol = st.sidebar.select_slider("Risk Tolerance", options=["Conservative", "Balanced", "Aggressive"], value="Balanced")
-
-# --- CALC & OUTPUT ---
-student_score = calculate_student_score(norm_gpa, sat, ec_tier, major_penalty)
-
-safeties, targets, aspirationals = [], [], []
-
-for c in COLLEGE_DB:
-    cat, gap, badge = calculate_admissibility(student_score, c, major_code, risk_tol)
-    
-    # Display Name includes Badge
-    display_name = f"{c['Name']}{badge}"
-    
-    row = {
-        "College": display_name, 
-        "Rate": c['Rate'], 
-        "Diff": c['Diff'], 
-        "Gap": gap, 
-        "Friendly": c['Friendly'],
-        "RawGap": gap
+    /* BASE: Larger text for readability */
+    * {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-size: 1.1rem;
     }
     
-    if cat == "Safety": safeties.append(row)
-    elif cat == "Target": targets.append(row)
-    else: aspirationals.append(row)
-
-# SORTING (Best 20)
-# Safeties: Hardest fit (highest Diff)
-df_safe = pd.DataFrame(safeties)
-if not df_safe.empty: df_safe = df_safe.sort_values(by="Diff", ascending=False).head(20)
-
-# Targets: Best Fit (Gap closest to 0 ? Or Ascending Gap)
-# If Gap is +2, that's safer than -2.
-# Let's sort by RawGap ascending (closest to 0/negative)
-df_targ = pd.DataFrame(targets)
-if not df_targ.empty: 
-    # Use absolute gap for "Fit" or just raw gap?
-    # Usually you want to see the 'Hardest' Targets first? Or the most 'Fitting'?
-    # Prompt: "Gap based sorting". 
-    # Let's do: Targets sorted by Gap Ascending ( -4 before +4).
-    df_targ = df_targ.sort_values(by="RawGap", ascending=True).head(20)
-
-# Aspirationals: Closest to success (Gap Descending: -6 better than -20)
-df_asp = pd.DataFrame(aspirationals)
-if not df_asp.empty: df_asp = df_asp.sort_values(by="RawGap", ascending=False).head(20)
-
-# Display Stats
-c1, c2, c3 = st.columns(3)
-c1.metric("Student Power Score", f"{student_score:.1f}")
-c2.metric("GPA (Normalized)", f"{norm_gpa}")
-c3.metric("Risk Mode", risk_tol)
-
-st.info(f"Analysis for **{major_selection}**. '🏆 Top Program' badge indicates strong department reputation.")
-
-t1, t2, t3 = st.tabs(["🛡️ Safeties", "🎯 Targets", "🚀 Aspirationals"])
-
-def render(df):
-    if df.empty:
-        st.info("No colleges in this category.")
-        return
-    d = df.copy()
-    d['Rate'] = d['Rate'].apply(lambda x: f"{x*100:.1f}%")
-    d['Gap'] = d['Gap'].apply(lambda x: f"{x:+.1f}")
-    # Drop RawGap for display
-    d = d.drop(columns=['Diff', 'RawGap']) # Hide internal Diff score from user? Or Keep? Original kept it.
-    # Restoring Diff column
-    d['Diff'] = df['Diff'] 
+    html, body, [class*="css"], p, span, div, label, input, button, table, th, td {
+        font-family: 'Neuton', Georgia, serif !important;
+    }
     
-    st.dataframe(d, use_container_width=True, hide_index=True)
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* HIERARCHY: Clear heading structure */
+    h1 {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-weight: 800;
+        font-size: 2.5rem !important;
+        color: #1a1a1a;
+    }
+    
+    h2 {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-weight: 700;
+        font-size: 2rem !important;
+        color: #b91c1c;
+    }
+    
+    h3, h4, h5, h6 {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-weight: 700;
+        color: #374151;
+    }
+    
+    /* METRICS: Color-coded cards */
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+        border: 2px solid #fecaca;
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+    
+    div[data-testid="stMetricValue"] {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-weight: 800;
+        font-size: 2.5rem !important;
+        color: #b91c1c;
+    }
+    
+    div[data-testid="stMetricLabel"] {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-size: 1rem !important;
+        color: #6b7280;
+        font-weight: 600;
+    }
+    
+    /* TABS: Clear visual distinction */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: #f3f4f6;
+        padding: 8px;
+        border-radius: 12px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-size: 1.1rem !important;
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 8px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: #b91c1c !important;
+        color: white !important;
+    }
+    
+    /* BUTTONS: Primary red action */
+    .stButton > button {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-size: 1.1rem !important;
+        border-radius: 10px;
+        padding: 12px 24px;
+        font-weight: 600;
+    }
+    
+    .stButton > button[kind="primary"] {
+        background: #b91c1c !important;
+        color: white !important;
+        border: none;
+    }
+    
+    .stButton > button[kind="primary"]:hover {
+        background: #991b1b !important;
+    }
+    
+    /* TABLE: Better readability */
+    .stDataFrame, .stDataFrame * {
+        font-family: 'Neuton', Georgia, serif !important;
+        font-size: 1rem !important;
+    }
+    
+    /* INPUTS: Larger, clearer */
+    .stSelectbox, .stTextInput, .stNumberInput, .stSlider {
+        font-family: 'Neuton', Georgia, serif !important;
+    }
+    
+    .stSelectbox label, .stTextInput label, .stNumberInput label, .stSlider label {
+        font-size: 1.1rem !important;
+        font-weight: 600;
+        color: #374151;
+    }
+    
+    [data-baseweb] {
+        font-family: 'Neuton', Georgia, serif !important;
+    }
+    
+    /* DIVIDER: Subtle red accent */
+    hr {
+        border-color: #fecaca !important;
+    }
+    
+    /* DOWNLOAD BUTTON: Distinct */
+    .stDownloadButton > button {
+        background: #059669 !important;
+        color: white !important;
+        font-weight: 600;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-with t1: render(df_safe)
-with t2: render(df_targ)
-with t3: render(df_asp)
+# --- SESSION STATE ---
+if 'step' not in st.session_state:
+    st.session_state['step'] = 1
 
-# --- REPORT GENERATION ---
-st.markdown("### 📄 Official Report")
-if st.button("Generate Official Letter"):
-    top_safe = df_safe.iloc[0]['College'] if not df_safe.empty else "N/A"
-    top_targ = df_targ.iloc[0]['College'] if not df_targ.empty else "N/A"
-    top_asp = df_asp.iloc[0]['College'] if not df_asp.empty else "N/A"
+if 'student' not in st.session_state:
+    st.session_state['student'] = {
+        'name': 'Student',
+        'gpa': 3.8,
+        'sat': 1400,
+        'major': 'Computer Science & Engineering',
+        'ec': 7,
+        'curriculum': 'CBSE / ICSE'
+    }
+
+# --- IMPORT EXPANDED DATABASE ---
+from colleges_db import COLLEGES
+
+MAJOR_MAP = {
+    "Computer Science & Engineering": {"tags": ['CS', 'Eng'], "penalty": 12},
+    "Business & Finance": {"tags": ['Biz'], "penalty": 8},
+    "Economics": {"tags": ['Econ'], "penalty": 8},
+    "Natural Sciences": {"tags": ['Sci'], "penalty": 5},
+    "Biology & Pre-Med": {"tags": ['Bio'], "penalty": 6},
+    "Humanities & Arts": {"tags": [], "penalty": 0}
+}
+
+# --- SCORING ---
+def calc_score(gpa, sat, ec):
+    g = min(100, (gpa / 4.0) * 100)
     
-    report_text = f"""
-    INFOYOUNG INDIA - COLLEGE STRATEGY REPORT
-    -----------------------------------------
-    Student Name: {name}
-    Major Interest: {major_selection}
-    Profile Score: {student_score:.1f}
-    Risk Profile: {risk_tol}
+    # SAT scoring with curve - makes lower scores drop faster
+    # 1600 = 100, 1500 = 90, 1400 = 78, 1300 = 65, 1200 = 52
+    if sat >= 1500:
+        s = 90 + ((sat - 1500) / 100) * 10  # 1500-1600 maps to 90-100
+    elif sat >= 1400:
+        s = 78 + ((sat - 1400) / 100) * 12  # 1400-1500 maps to 78-90
+    elif sat >= 1300:
+        s = 65 + ((sat - 1300) / 100) * 13  # 1300-1400 maps to 65-78
+    elif sat >= 1200:
+        s = 52 + ((sat - 1200) / 100) * 13  # 1200-1300 maps to 52-65
+    else:
+        s = max(30, (sat / 1200) * 52)  # Below 1200 scales down
     
-    Based on our 'Relative-Fit Analysis', here are your recommended schools:
+    # New weights: GPA 35%, SAT 55%, EC 10%
+    return (g * 0.35) + (s * 0.55) + ec
+
+def classify(score, college, major):
+    name, avg_sat, diff, friendly, specs, school_names, state, fees = college
+    m = MAJOR_MAP.get(major, {"tags": [], "penalty": 0})
     
-    1. TOP ASPIRATIONAL (Reach): {top_asp}
-       - This school is a Reach, but your profile shows potential.
-       
-    2. TOP TARGET (Best Fit): {top_targ}
-       - Your profile is well-aligned with this institution.
-       
-    3. TOP SAFETY (Backup): {top_safe}
-       - You are strongly positioned for admission here.
-       
-    Strategic Advice:
-    Focus your essays on {top_targ} while keeping {top_safe} as a reliable backup. 
-    For {top_asp}, demonstrate strong specific interest ("Why Us") to bridge the gap.
+    pen = m['penalty'] if any(t in specs for t in m['tags']) else 0
+    intl = 15 if friendly == "Low" else (-5 if friendly == "High" else 0)
     
-    Generated by Infoyoung India Engine.
-    """
-    st.code(report_text)
+    eff = diff + pen + intl
+    gap = score - eff
+    
+    # SAT comparison adjustment - compare student SAT with college avg
+    student_sat = st.session_state.get('student', {}).get('sat', 0)
+    sat_diff = student_sat - avg_sat
+    sat_adjustment = sat_diff / 25  # Every 25 SAT points = ~1 point adjustment
+    gap += sat_adjustment
+    
+    s_th, r_th = 8, -8
+    
+    cat = "Target"
+    if gap > s_th: cat = "Safety"
+    elif gap < r_th: cat = "Reach"
+    if diff >= 95 and gap <= 3: cat = "Reach"
+    
+    # Get specific school name based on major
+    display_name = name
+    for tag in m['tags']:
+        if tag in school_names:
+            display_name = f"{name} ({school_names[tag]})"
+            break
+    
+    return cat, gap, display_name, friendly, avg_sat, state, fees
+
+# --- NAV ---
+def go(n): st.session_state['step'] = n
+
+# ==============================================================================
+# STEP 1: HOME - Clear entry point with visual hierarchy
+# ==============================================================================
+if st.session_state['step'] == 1:
+    st.write("")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # Centered logo
+        if os.path.exists("logo.png"):
+            c1, c2, c3 = st.columns([1, 1, 1])
+            with c2:
+                st.image("logo.png", width=200)
+        
+        # Clear heading hierarchy
+        st.markdown("<h1 style='text-align: center; font-size: 3rem; margin-top: 1.5rem; color: #1a1a1a;'>Infoyoung India</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #b91c1c; font-size: 1.3rem; font-weight: 600;'>College Strategy Platform</p>", unsafe_allow_html=True)
+        
+        st.write("")
+        
+        # Value proposition
+        st.markdown("""
+        <div style='background: #fef2f2; border-left: 4px solid #b91c1c; padding: 1.5rem; border-radius: 8px; margin: 2rem 0;'>
+            <p style='margin: 0; color: #374151; font-size: 1.15rem; line-height: 1.6;'>
+                <strong>Get personalized college recommendations</strong> based on your academic profile. 
+                Our algorithm analyzes <strong>180+ US universities</strong> to find your Safety, Target, and Reach schools.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write("")
+        
+        # Primary CTA - large and clear
+        if st.button("→ Start Your Analysis", type="primary", use_container_width=True):
+            go(2)
+            st.rerun()
+
+# ==============================================================================
+# STEP 2: INPUTS - Structured form with clear groupings
+# ==============================================================================
+elif st.session_state['step'] == 2:
+    
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col1:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width=120)
+    with col2:
+        st.markdown("<h1 style='text-align: center; font-size: 2.2rem; margin-top: 0.5rem;'>Tell Us About You</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #6b7280; font-size: 1.1rem;'>We'll match you with the right universities</p>", unsafe_allow_html=True)
+    with col3:
+        st.write("")
+    
+    st.divider()
+    
+    # Curriculum selector OUTSIDE form so it re-renders immediately
+    curr = st.selectbox("Curriculum", ["CBSE / ICSE", "IB Diploma", "A-Levels", "US High School"], key="curr_select")
+    
+    with st.form("form"):
+        c1, c2 = st.columns(2)
+        
+        with c1:
+            name = st.text_input("Name", st.session_state['student']['name'])
+            
+            # Show appropriate input based on curriculum
+            if curr == "CBSE / ICSE":
+                pct = st.number_input("Percentage (%)", 0.0, 100.0, 90.0)
+                gpa = 4.0 if pct >= 95 else 3.9 if pct >= 90 else 3.7 if pct >= 85 else 3.5 if pct >= 80 else 3.3 if pct >= 75 else 3.0 if pct >= 70 else 2.7
+            elif curr == "IB Diploma":
+                ib = st.number_input("IB Score (out of 45)", 24, 45, 38)
+                gpa = 4.0 if ib >= 44 else 3.9 if ib >= 42 else 3.8 if ib >= 40 else 3.7 if ib >= 38 else 3.5 if ib >= 36 else 3.4 if ib >= 34 else 3.2 if ib >= 32 else 3.0 if ib >= 30 else 2.7 if ib >= 27 else 2.5
+            elif curr == "A-Levels":
+                gr = st.selectbox("Best 3 Grades", ["A*A*A*", "A*A*A", "A*AA", "AAA", "AAB", "ABB", "BBB", "BBC", "BCC", "CCC"])
+                gpa = 4.0 if gr == "A*A*A*" else 4.0 if gr == "A*A*A" else 3.9 if gr == "A*AA" else 3.8 if gr == "AAA" else 3.6 if gr == "AAB" else 3.4 if gr == "ABB" else 3.3 if gr == "BBB" else 3.1 if gr == "BBC" else 2.9 if gr == "BCC" else 2.7
+            else:
+                gpa = st.number_input("GPA (out of 4.0)", 0.0, 4.0, 3.8)
+            
+            sat = st.number_input("SAT Score (0 = Test Optional)", 0, 1600, 1400)
+        
+        with c2:
+            major = st.selectbox("Intended Major", list(MAJOR_MAP.keys()))
+            ec = st.slider("Extracurricular Profile", 1, 10, 7)
+        
+        st.divider()
+        
+        c1, c2 = st.columns([4, 1])
+        with c1:
+            if st.form_submit_button("Generate Report", type="primary", use_container_width=True):
+                st.session_state['student'] = {'name': name or "Student", 'gpa': gpa, 'sat': sat, 'major': major, 'ec': ec, 'curriculum': curr}
+                go(3)
+                st.rerun()
+        with c2:
+            if st.form_submit_button("← Home"):
+                go(1)
+                st.rerun()
+
+# ==============================================================================
+# STEP 3: RESULTS - Clear presentation with actionable insights
+# ==============================================================================
+elif st.session_state['step'] == 3:
+    s = st.session_state['student']
+    
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col1:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", width=120)
+    with col2:
+        st.markdown("<h1 style='text-align: center; font-size: 2.2rem; margin-top: 0.5rem;'>Your College Strategy</h1>", unsafe_allow_html=True)
+    with col3:
+        st.write("")
+    
+    st.divider()
+    
+    # Success message with student info
+    st.markdown(f"""
+    <div style='background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); border: 2px solid #86efac; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;'>
+        <p style='margin: 0; font-size: 1.2rem;'><strong>Strategy generated for {s['name']}</strong></p>
+        <p style='margin: 0.5rem 0 0 0; color: #374151;'>{s['major']} | GPA {s['gpa']:.1f} | SAT {s['sat'] if s['sat'] > 0 else 'Test Optional'}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    score = calc_score(s['gpa'], s['sat'], s['ec'])
+    
+    safeties, targets, reaches = [], [], []
+    
+    for c in COLLEGES:
+        cat, gap, display_name, friendly, avg_sat, state, fees = classify(score, c, s['major'])
+        
+        row = {
+            "University": display_name,
+            "State": state,
+            "Avg SAT": avg_sat,
+            "Est. Fees": f"${fees:,}",
+            "Fit": gap,
+            "_gap": gap,
+            "_diff": c[2]
+        }
+        
+        if cat == "Safety": safeties.append(row)
+        elif cat == "Target": targets.append(row)
+        else: reaches.append(row)
+    
+    if len(safeties) < 5 and targets:
+        targets.sort(key=lambda x: x['_gap'], reverse=True)
+        for _ in range(min(5 - len(safeties), len(targets))):
+            m = targets.pop(0)
+            safeties.append(m)
+    
+    safeties.sort(key=lambda x: x['_diff'], reverse=True)
+    targets.sort(key=lambda x: abs(x['_gap']))
+    reaches.sort(key=lambda x: x['_diff'], reverse=True)
+    
+    # Keep full lists for Excel export
+    all_safeties, all_targets, all_reaches = safeties.copy(), targets.copy(), reaches.copy()
+    
+    # Limit display to top 15 each
+    safeties, targets, reaches = safeties[:15], targets[:15], reaches[:15]
+    
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Score", f"{score:.0f}/100")
+    c2.metric("Safety Schools", len(safeties))
+    c3.metric("Target Schools", len(targets))
+    c4.metric("Reach Schools", len(reaches))
+    
+    st.write("")
+    
+    col1, col2, col3 = st.columns([1, 1, 2])
+    
+    with col1:
+        if st.button("← Edit Profile", use_container_width=True):
+            go(2)
+            st.rerun()
+    
+    with col2:
+        if st.button("↺ Start Over", use_container_width=True):
+            go(1)
+            st.rerun()
+    
+    with col3:
+        def xl():
+            from io import BytesIO
+            o = BytesIO()
+            
+            # Add category labels and combine all
+            for r in safeties: r['Category'] = 'Safety'
+            for r in targets: r['Category'] = 'Target'
+            for r in reaches: r['Category'] = 'Reach'
+            all_colleges = safeties + targets + reaches
+            
+            with pd.ExcelWriter(o, engine='openpyxl') as w:
+                # Student info sheet
+                student_info = pd.DataFrame([{
+                    'Student Name': s['name'],
+                    'Curriculum': s['curriculum'],
+                    'GPA': f"{s['gpa']:.2f}",
+                    'SAT': s['sat'],
+                    'Major': s['major'],
+                    'EC Score': f"{s['ec']}/10",
+                    'Overall Score': f"{score:.0f}/100"
+                }])
+                student_info.to_excel(w, sheet_name='Student Profile', index=False)
+                
+                # Combined sheet with all 45
+                if all_colleges:
+                    cols = ['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
+                    df_all = pd.DataFrame(all_colleges)[cols]
+                    df_all.to_excel(w, sheet_name='All Recommendations', index=False)
+                # Individual sheets
+                cols_single = ['University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
+                if safeties: pd.DataFrame(safeties)[cols_single].to_excel(w, sheet_name='Safety', index=False)
+                if targets: pd.DataFrame(targets)[cols_single].to_excel(w, sheet_name='Target', index=False)
+                if reaches: pd.DataFrame(reaches)[cols_single].to_excel(w, sheet_name='Reach', index=False)
+            return o.getvalue()
+        
+        st.download_button("Download Excel Report", xl(), f"{s['name']}_Strategy.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+    
+    st.write("")
+    st.divider()
+    
+    t1, t2, t3 = st.tabs(["Safety", "Target", "Reach"])
+    
+    def show(data):
+        if not data:
+            st.info("No schools found in this category.")
+            return
+        df = pd.DataFrame([{
+            "University": r['University'],
+            "State": r['State'],
+            "Avg SAT": r['Avg SAT'],
+            "Est. Fees": r['Est. Fees'],
+            "Fit": f"{r['Fit']:+.0f}"
+        } for r in data])
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    
+    with t1: show(safeties)
+    with t2: show(targets)
+    with t3: show(reaches)
