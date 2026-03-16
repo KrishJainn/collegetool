@@ -228,9 +228,10 @@ def estimate_admission_chance(gpa, sat, ec, college, major):
     #   Top-50 schools: median admitted GPA 3.6-3.8
     #   Less selective: GPA 3.0+ generally sufficient
     if accept_rate < 0.15:
-        # Highly selective: expects 3.9+, steep dropoff below 3.7
-        # 4.0→1.2, 3.9→1.14, 3.7→1.02, 3.5→0.90, 3.0→0.60
-        gpa_mult = max(0.15, min(1.3, 0.30 + (gpa - 2.5) * 0.60))
+        # Highly selective: median admitted GPA is 3.9+ (CDS data)
+        # Baseline at ~3.85; steep dropoff below 3.7
+        # 4.0→1.20, 3.9→1.08, 3.85→1.02, 3.7→0.84, 3.5→0.60, 3.0→0.15
+        gpa_mult = max(0.15, min(1.2, (gpa - 3.0) * 1.20))
     elif accept_rate < 0.40:
         # Moderately selective: expects 3.5+, gradual dropoff
         # 4.0→1.28, 3.5→1.0, 3.0→0.73, 2.5→0.45
