@@ -430,7 +430,8 @@ elif st.session_state['step'] == 3:
             "Est. Fees": f"${fees:,}",
             "Est. Chance": f"{prob * 100:.1f}%",
             "_prob": prob,
-            "_accept_rate": accept_rate
+            "_accept_rate": accept_rate,
+            "_specs": specs
         }
 
         # Classification thresholds based on estimated probability
@@ -453,6 +454,18 @@ elif st.session_state['step'] == 3:
     safeties.sort(key=lambda x: x['_accept_rate'])
     targets.sort(key=lambda x: x['_accept_rate'])
     reaches.sort(key=lambda x: x['_accept_rate'])
+
+    # --- Program strength filter ---
+    major_tags = MAJOR_MAP.get(s['major'], {}).get('tags', [])
+    filter_active = False
+    if major_tags:
+        filter_active = st.toggle(f"Only show colleges strong in {s['major']}", value=False)
+        if filter_active:
+            safeties = [r for r in safeties if any(t in r['_specs'] for t in major_tags)]
+            targets = [r for r in targets if any(t in r['_specs'] for t in major_tags)]
+            reaches = [r for r in reaches if any(t in r['_specs'] for t in major_tags)]
+            tag_label = " & ".join(major_tags)
+            st.caption(f"Showing only colleges with strong {tag_label} programs. Toggle off to see all.")
 
     # Keep full lists for Excel export
     all_safeties, all_targets, all_reaches = safeties.copy(), targets.copy(), reaches.copy()
@@ -504,6 +517,7 @@ elif st.session_state['step'] == 3:
                         'SAT': s['sat'] if s['sat'] > 0 else 'Test Optional',
                         'Major': s['major'],
                         'EC Score': f"{s['ec']}/10",
+                        'Program Filter': 'Active' if filter_active else 'Off',
                         'Safety': len(all_safeties),
                         'Target': len(all_targets),
                         'Reach': len(all_reaches)
