@@ -448,11 +448,11 @@ elif st.session_state['step'] == 3:
         while len(safeties) < 5 and targets:
             safeties.append(targets.pop(0))
 
-    # Sort: Safeties by prestige (lowest accept rate first)
-    # Targets/Reaches by estimated chance (best chances first)
+    # Sort all categories by prestige (lowest accept rate = most selective first)
+    # This ensures "best 15" means the 15 most prestigious schools in each tier
     safeties.sort(key=lambda x: x['_accept_rate'])
-    targets.sort(key=lambda x: x['_prob'], reverse=True)
-    reaches.sort(key=lambda x: x['_prob'], reverse=True)
+    targets.sort(key=lambda x: x['_accept_rate'])
+    reaches.sort(key=lambda x: x['_accept_rate'])
 
     # Keep full lists for Excel export
     all_safeties, all_targets, all_reaches = safeties.copy(), targets.copy(), reaches.copy()
