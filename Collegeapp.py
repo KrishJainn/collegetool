@@ -174,7 +174,11 @@ MAJOR_MAP = {
 # --- SCORING ---
 def calc_score(gpa, sat, ec):
     g = min(100, (gpa / 4.0) * 100)
-    
+
+    # Test Optional: reweight to GPA 75%, EC 15% (penalizes missing SAT realistically)
+    if sat == 0:
+        return (g * 0.75) + (ec * 1.5)
+
     # SAT scoring with curve - makes lower scores drop faster
     # 1600 = 100, 1500 = 90, 1400 = 78, 1300 = 65, 1200 = 52
     if sat >= 1500:
@@ -187,7 +191,7 @@ def calc_score(gpa, sat, ec):
         s = 52 + ((sat - 1200) / 100) * 13  # 1200-1300 maps to 52-65
     else:
         s = max(30, (sat / 1200) * 52)  # Below 1200 scales down
-    
+
     # New weights: GPA 35%, SAT 55%, EC 10%
     return (g * 0.35) + (s * 0.55) + ec
 
@@ -202,10 +206,12 @@ def classify(score, college, major):
     gap = score - eff
     
     # SAT comparison adjustment - compare student SAT with college avg
+    # Skip adjustment for test-optional students (SAT=0)
     student_sat = st.session_state.get('student', {}).get('sat', 0)
-    sat_diff = student_sat - avg_sat
-    sat_adjustment = sat_diff / 25  # Every 25 SAT points = ~1 point adjustment
-    gap += sat_adjustment
+    if student_sat > 0:
+        sat_diff = student_sat - avg_sat
+        sat_adjustment = sat_diff / 25  # Every 25 SAT points = ~1 point adjustment
+        gap += sat_adjustment
     
     s_th, r_th = 8, -8
     
@@ -293,7 +299,7 @@ elif st.session_state['step'] == 2:
             # Show appropriate input based on curriculum
             if curr == "CBSE / ICSE":
                 pct = st.number_input("Percentage (%)", 0.0, 100.0, 90.0)
-                gpa = 4.0 if pct >= 95 else 3.9 if pct >= 90 else 3.7 if pct >= 85 else 3.5 if pct >= 80 else 3.3 if pct >= 75 else 3.0 if pct >= 70 else 2.7
+                gpa = 4.0 if pct >= 95 else 3.9 if pct >= 90 else 3.7 if pct >= 85 else 3.5 if pct >= 80 else 3.3 if pct >= 75 else 3.0 if pct >= 70 else 2.7 if pct >= 60 else 2.3 if pct >= 50 else 2.0
             elif curr == "IB Diploma":
                 ib = st.number_input("IB Score (out of 45)", 24, 45, 38)
                 gpa = 4.0 if ib >= 44 else 3.9 if ib >= 42 else 3.8 if ib >= 40 else 3.7 if ib >= 38 else 3.5 if ib >= 36 else 3.4 if ib >= 34 else 3.2 if ib >= 32 else 3.0 if ib >= 30 else 2.7 if ib >= 27 else 2.5
@@ -366,7 +372,8 @@ elif st.session_state['step'] == 3:
         
         if cat == "Safety": safeties.append(row)
         elif cat == "Target": targets.append(row)
-        else: reaches.append(row)
+        elif gap >= -20: reaches.append(row)
+        # Colleges with gap < -20 are unrealistic and not shown
     
     if len(safeties) < 5 and targets:
         targets.sort(key=lambda x: x['_gap'], reverse=True)
@@ -408,16 +415,16 @@ elif st.session_state['step'] == 3:
         def xl():
             from io import BytesIO
             o = BytesIO()
-            
-            # Add category labels and combine all
-            for r in safeties: r['Category'] = 'Safety'
-            for r in targets: r['Category'] = 'Target'
-            for r in reaches: r['Category'] = 'Reach'
-            all_colleges = safeties + targets + reaches
-            
+
+            # Build export data from full lists (not truncated display lists)
+            # Use copies to avoid mutating display data
+            export_safe = [dict(r, Category='Safety') for r in all_safeties]
+            export_targ = [dict(r, Category='Target') for r in all_targets]
+            export_reach = [dict(r, Category='Reach') for r in all_reaches]
+            all_colleges = export_safe + export_targ + export_reach
+
             try:
                 with pd.ExcelWriter(o, engine='xlsxwriter') as w:
-                    # Student info sheet
                     student_info = pd.DataFrame([{
                         'Student Name': s['name'],
                         'Curriculum': s['curriculum'],
@@ -428,19 +435,15 @@ elif st.session_state['step'] == 3:
                         'Overall Score': f"{score:.0f}/100"
                     }])
                     student_info.to_excel(w, sheet_name='Student Profile', index=False)
-                    
-                    # Combined sheet with all 45
-                    if all_colleges:
-                        cols = ['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
-                        df_all = pd.DataFrame(all_colleges)[cols]
-                        df_all.to_excel(w, sheet_name='All Recommendations', index=False)
-                    # Individual sheets
+
+                    cols = ['Category', 'University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
                     cols_single = ['University', 'State', 'Avg SAT', 'Est. Fees', 'Fit']
-                    if safeties: pd.DataFrame(safeties)[cols_single].to_excel(w, sheet_name='Safety', index=False)
-                    if targets: pd.DataFrame(targets)[cols_single].to_excel(w, sheet_name='Target', index=False)
-                    if reaches: pd.DataFrame(reaches)[cols_single].to_excel(w, sheet_name='Reach', index=False)
-            except:
-                # Fallback to openpyxl
+                    if all_colleges:
+                        pd.DataFrame(all_colleges)[cols].to_excel(w, sheet_name='All Recommendations', index=False)
+                    if export_safe: pd.DataFrame(export_safe)[cols_single].to_excel(w, sheet_name='Safety', index=False)
+                    if export_targ: pd.DataFrame(export_targ)[cols_single].to_excel(w, sheet_name='Target', index=False)
+                    if export_reach: pd.DataFrame(export_reach)[cols_single].to_excel(w, sheet_name='Reach', index=False)
+            except Exception:
                 with pd.ExcelWriter(o, engine='openpyxl') as w:
                     student_info = pd.DataFrame([{'Student Name': s['name'], 'Curriculum': s['curriculum'], 'GPA': f"{s['gpa']:.2f}", 'SAT': s['sat'], 'Major': s['major'], 'EC Score': f"{s['ec']}/10", 'Overall Score': f"{score:.0f}/100"}])
                     student_info.to_excel(w, sheet_name='Student Profile', index=False)
