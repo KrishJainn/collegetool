@@ -457,13 +457,17 @@ elif st.session_state['step'] == 3:
     # Keep full lists for Excel export
     all_safeties, all_targets, all_reaches = safeties.copy(), targets.copy(), reaches.copy()
 
-    # Limit display to top 15 each
-    safeties, targets, reaches = safeties[:15], targets[:15], reaches[:15]
+    # Show best 15 per category on screen; full list in Excel
+    TOP_N = 15
+    safeties, targets, reaches = safeties[:TOP_N], targets[:TOP_N], reaches[:TOP_N]
 
     c1, c2, c3 = st.columns(3)
-    c1.metric("Safety Schools", len(all_safeties))
-    c2.metric("Target Schools", len(all_targets))
-    c3.metric("Reach Schools", len(all_reaches))
+    c1.metric("Safety Schools", len(safeties), delta=f"{len(all_safeties)} total" if len(all_safeties) > TOP_N else None)
+    c2.metric("Target Schools", len(targets), delta=f"{len(all_targets)} total" if len(all_targets) > TOP_N else None)
+    c3.metric("Reach Schools", len(reaches), delta=f"{len(all_reaches)} total" if len(all_reaches) > TOP_N else None)
+
+    if len(all_safeties) > TOP_N or len(all_targets) > TOP_N or len(all_reaches) > TOP_N:
+        st.caption(f"Showing top {TOP_N} per category. Download the Excel report for the complete list.")
     
     st.write("")
     
@@ -526,7 +530,11 @@ elif st.session_state['step'] == 3:
     st.write("")
     st.divider()
     
-    t1, t2, t3 = st.tabs(["Safety", "Target", "Reach"])
+    t1, t2, t3 = st.tabs([
+        f"Safety ({len(safeties)})",
+        f"Target ({len(targets)})",
+        f"Reach ({len(reaches)})"
+    ])
     
     def show(data):
         if not data:
